@@ -1,0 +1,9 @@
+eclipse.preferences.version=1
+encoding//TKYWebMap/settings.py=utf8
+encoding//TKYWebMap/urls.py=utf8
+encoding//map/models.py=utf8
+encoding//map/urls.py=utf8
+encoding//map/views.py=utf8
+encoding//utils/base.py=utf-8
+encoding/<project>=UTF-8
+separateDerivedEncodings=true

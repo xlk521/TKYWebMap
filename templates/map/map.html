@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+		<style type="text/css">
+			body, html,#l-map {width: 100%;height: 100%;overflow: hidden;hidden;margin:0;}
+		</style>
+		<link type="text/css" rel="stylesheet" href="/statics/css/rounded.css">
+		<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=DWWbWachw8jfxs6oc3dIx7Iv"></script>
+		<script type="text/javascript" src="/statics/js/jquery.min.js"></script>
+		<script type="text/javascript" src="/statics/js/jquery.timers-1.2.js"></script>
+		<title>显示地图</title>
+	</head>
+	<body>
+		<div id="l-map"></div>
+	</body>
+</html>
+<script type="text/javascript">
+	var map = new BMap.Map("l-map");
+	
+	map.centerAndZoom(new BMap.Point(116.404, 39.915), 5);
+	map.addControl(new BMap.NavigationControl({anchor: BMAP_ANCHOR_BOTTOM_RIGHT, type: BMAP_NAVIGATION_CONTROL_ZOOM}));  //右下角，仅包含缩放按钮
+	var scaleControl=new BMap.ScaleControl();  
+	map.addControl(scaleControl);//添加比例尺控件
+	map.addControl(new BMap.ScaleControl({anchor: BMAP_ANCHOR_BOTTOM_LEFT}));                    // 左下
+	//添加地图，卫星图，街景的选择
+	map.addControl(new BMap.MapTypeControl({mapTypes: [BMAP_NORMAL_MAP,BMAP_HYBRID_MAP],anchor: BMAP_ANCHOR_TOP_LEFT}));     //2D图，卫星图
+	map.setCurrentCity("北京");
+    function getCookie(name) {
+	    var cookieValue = null;
+	    if (document.cookie && document.cookie != '') {
+	        var cookies = document.cookie.split(';');
+	        for (var i = 0; i < cookies.length; i++) {
+	            var cookie = jQuery.trim(cookies[i]);
+	            // Does this cookie string begin with the name we want?
+	            if (cookie.substring(0, name.length + 1) == (name + '=')) {
+	                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+	                break;
+	            }
+	        }
+	    }
+	    return cookieValue;
+	}
+	var csrftoken = getCookie('csrftoken');
+	function addMarker(point, index, ztcheci,time){  // 创建图标对象     
+  		var myIcon = new BMap.Icon("http://api.map.baidu.com/mapCard/img/location.gif", new BMap.Size(14, 23), {      
+	       // 指定定位位置。
+	       // 当标注显示在地图上时，其所指向的地理位置距离图标左上
+	       // 角各偏移7像素和25像素。您可以看到在本例中该位置即是
+	       // 图标中央下端的尖角位置。
+       		anchor: new BMap.Size(7, 25),
+      	});
+	 	// 创建标注对象并添加到地图 
+  		var marker = new BMap.Marker(point);
+ 	 	map.addOverlay(marker);
+ 	 	try{
+			//添加文字标注
+			var opts = {
+				position : point,    // 指定文本标注所在的地理位置
+				offset   : new BMap.Size(-0.01, 0)    //设置文本偏移量
+			}
+			var label = new BMap.Label(ztcheci, opts);  // 创建文本标注对象
+			map.addOverlay(label);
+		}catch(e){
+			//alert(e.message);
+		}
+		marker.addEventListener("click", function(){      
+			var opts = {      
+			    width : 100,     // 信息窗口宽度      
+			    height: 150,     // 信息窗口高度      
+			    title : "Hello"  // 信息窗口标题     
+			}
+			var sContent =
+				"<div><h5 style='margin:0 0 3px 0;padding:0.2em 0'>"+ztcheci+"</h5>" + 
+				"<h6 style='margin:0 0 3px 0;padding:0.2em 0'>"+time+"</h6>" +  
+				"</div>";
+			var infoWindow = new BMap.InfoWindow(sContent);  // 创建信息窗口对象
+			var lng = marker.getPosition().lng;
+			var lat = marker.getPosition().lat + 0.001;
+			var pointInfo = new BMap.Point(lng, lat);
+			map.openInfoWindow(infoWindow, pointInfo);      // 打开信息窗口 
+		});
+ 	}
+ 	function getPointsByAjax(){
+ 		var result = '';
+        $.ajax({
+            type: 'POST',
+            url: '/map/',
+            headers: {"X-CSRFToken":csrftoken},
+            dataType:'json',
+            data: null,
+            success:function(message){
+                // alert(message);
+                var j = 0;
+                try{
+			    	map.clearOverlays();
+	                for(i in message) {
+					    var msg = message[i];
+					    // alert(msg['checi']);
+	                    var point = new BMap.Point(msg['lng']*1,msg['lat']*1);  
+		    			addMarker(point, j , msg['checi'], msg['time']);
+		    			j = j + 1;
+	                }
+			    }catch(e){
+			    	//alert(e.message);
+			    }
+			}
+        });
+        return result;
+ 	}
+ // 	// 随机向地图添加10个标注
+	// var bounds = map.getBounds();
+	// var lngSpan = bounds.getNorthEast().lng - bounds.getSouthWest().lng;
+	// var latSpan = bounds.getNorthEast().lat- bounds.getSouthWest().lat;
+	getPointsByAjax();
+	//每分钟刷新一次
+	$('body').everyTime('600s',getPointsByAjax);
+	// for (var i = 0; i < 10; i++) {
+	//     var point = new BMap.Point(bounds.getSouthWest().lng + lngSpan * (Math.random() * 0.7 + 0.15), bounds.getSouthWest().lat + latSpan * (Math.random() * 0.7 + 0.15));  
+	//     addMarker(point, i);  
+	// }
+</script>
